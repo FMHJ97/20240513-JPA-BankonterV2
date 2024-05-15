@@ -2,6 +2,8 @@ package bankonter.view;
 
 import javax.swing.JPanel;
 import java.awt.BorderLayout;
+import java.awt.Color;
+
 import javax.swing.JToolBar;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.event.ChangeEvent;
@@ -9,18 +11,26 @@ import javax.swing.event.ChangeListener;
 
 import bankonter.controller.ControladorContratoJPA;
 import bankonter.model.Contrato;
-
 import java.awt.Font;
 import javax.swing.JButton;
+import javax.swing.JDialog;
 import javax.swing.ImageIcon;
 import java.awt.GridBagLayout;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+
 import java.awt.GridBagConstraints;
 import java.awt.Insets;
+import java.awt.Toolkit;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Date;
 
 import javax.swing.JTextField;
 import javax.swing.JFormattedTextField;
+import javax.swing.JFormattedTextField.AbstractFormatter;
 import javax.swing.JSpinner;
 import javax.swing.JSlider;
 
@@ -43,7 +53,8 @@ public class PanelContrato extends JPanel {
 	private JLabel lbCantidadSaldo;
 	private JButton btnTipoContrato;
 	private JButton btnUsuario;
-	private SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy");
+	private SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
+	private JDialog dialogo;
 	
 	// Objeto que almacenará el Contrato actual mostrado.
 	// Lo usaremos para acceder al 'id' del Objeto.
@@ -60,22 +71,52 @@ public class PanelContrato extends JPanel {
 		add(toolBar, BorderLayout.NORTH);
 		
 		btnFirst = new JButton("");
+		btnFirst.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				showFirst();
+			}
+		});
 		btnFirst.setIcon(new ImageIcon(PanelContrato.class.getResource("/bankonter/res/gotostart.png")));
 		toolBar.add(btnFirst);
 		
 		btnPrevious = new JButton("");
+		btnPrevious.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {	
+				showPrevious();
+			}
+		});
 		btnPrevious.setIcon(new ImageIcon(PanelContrato.class.getResource("/bankonter/res/previous.png")));
 		toolBar.add(btnPrevious);
 		
 		btnNext = new JButton("");
+		btnNext.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				showNext();
+			}
+		});
 		btnNext.setIcon(new ImageIcon(PanelContrato.class.getResource("/bankonter/res/next.png")));
 		toolBar.add(btnNext);
 		
 		btnLast = new JButton("");
+		btnLast.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {	
+				showLast();
+			}
+		});
 		btnLast.setIcon(new ImageIcon(PanelContrato.class.getResource("/bankonter/res/gotoend.png")));
 		toolBar.add(btnLast);
 		
 		btnNuevo = new JButton("Nuevo");
+		btnNuevo.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				newEntry();
+			}
+		});
 		btnNuevo.setIcon(new ImageIcon(PanelContrato.class.getResource("/bankonter/res/nuevo.png")));
 		toolBar.add(btnNuevo);
 		
@@ -134,7 +175,28 @@ public class PanelContrato extends JPanel {
 		gbc_lblNewLabel_1_1.gridy = 2;
 		panel.add(lblNewLabel_1_1, gbc_lblNewLabel_1_1);
 		
-		jftfFecha = new JFormattedTextField();
+		jftfFecha = new JFormattedTextField(new AbstractFormatter() {
+			@Override
+			public String valueToString(Object value) throws ParseException {
+				if (value != null && value instanceof Date) {
+					return sdf.format(((Date) value));
+				}
+				return "";
+			}
+			
+			@Override
+			public Object stringToValue(String text) throws ParseException {
+				try {
+					jftfFecha.setBackground(Color.WHITE);
+					return sdf.parse(text);
+				} catch (Exception e) {
+					jftfFecha.setBackground(Color.RED);
+					JOptionPane.showMessageDialog(null,
+							"Error. La fecha debe tener el siguiente formato: dd/MM/yyyy");
+					return null;
+				}
+			}
+		});
 		jftfFecha.setFont(new Font("Dialog", Font.PLAIN, 15));
 		GridBagConstraints gbc_jftfFecha = new GridBagConstraints();
 		gbc_jftfFecha.gridwidth = 2;
@@ -153,16 +215,19 @@ public class PanelContrato extends JPanel {
 		gbc_lblNewLabel_1_1_1.gridy = 3;
 		panel.add(lblNewLabel_1_1_1, gbc_lblNewLabel_1_1_1);
 		
-		spinner = new JSpinner(new SpinnerNumberModel(50000, 0, 50000, 1));
+		spinner = new JSpinner(new SpinnerNumberModel(0, 0, 1000000, 1));
 		spinner.addChangeListener(new ChangeListener() {
 			@Override
 			public void stateChanged(ChangeEvent e) {
 				slider.setMaximum(
-						// Si el objeto del Spinner es distinto de Null Y
-						// el Objeto es un Integer, establecemos el valor del Objeto.
+						// Si el objeto del Spinner es distinto de Null.
 						// En caso contrario, establecemos un cero.
-						(spinner.getValue() != null && spinner.getValue() instanceof Integer)? 
-								(Integer) spinner.getValue() : 0 
+						/*
+						 * Hacemos un casteo a Number, dado que podemos obtener 
+						 * objetos Float o Integer.
+						 */
+						(spinner.getValue() != null && spinner.getValue() instanceof Number)? 
+								((Number) spinner.getValue()).intValue() : 0 
 				);
 			}
 		});
@@ -193,7 +258,7 @@ public class PanelContrato extends JPanel {
 		gbc_lblNewLabel_1_2.gridy = 4;
 		panel.add(lblNewLabel_1_2, gbc_lblNewLabel_1_2);
 		
-		slider = new JSlider(0, (Integer) spinner.getValue(), 1);
+		slider = new JSlider(0, 1000000);
 		slider.addChangeListener(new ChangeListener() {
 			@Override
 			public void stateChanged(ChangeEvent e) {
@@ -238,7 +303,13 @@ public class PanelContrato extends JPanel {
 		gbc_jtfTipoContrato.gridy = 5;
 		panel.add(jtfTipoContrato, gbc_jtfTipoContrato);
 		
-		btnTipoContrato = new JButton("Seleccionar Tito Contrato");
+		btnTipoContrato = new JButton("Seleccionar Tipo Contrato");
+		btnTipoContrato.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				showJDialog(new PanelTipoContrato());
+			}
+		});
 		btnTipoContrato.setFont(new Font("Dialog", Font.BOLD, 15));
 		GridBagConstraints gbc_btnTipoContrato = new GridBagConstraints();
 		gbc_btnTipoContrato.gridwidth = 2;
@@ -282,6 +353,53 @@ public class PanelContrato extends JPanel {
 	/**
 	 * 
 	 */
+	private void newEntry() {
+		this.jtfDescripcion.setText("");
+		this.spinner.setValue(0);
+		this.slider.setValue(0);
+		this.jtfTipoContrato.setText("");
+		this.jtfUsuario.setText("");
+		this.jftfFecha.setText("");
+	}
+ 	
+	/**
+	 * 
+	 */
+	private void showPrevious() {
+		Contrato c = (Contrato) ControladorContratoJPA
+				.getInstance().findPrevious(current.getId());
+		
+		if (c != null) {
+			current = c;
+		}
+		showEntry(current);
+	}
+	
+	/**
+	 * 
+	 */
+	private void showNext() {
+		Contrato c = (Contrato) ControladorContratoJPA
+				.getInstance().findNext(current.getId());
+		
+		if (c != null) {
+			current = c;
+		}
+		showEntry(current);
+	}
+	
+	/**
+	 * 
+	 */
+	private void showLast() {
+		current = (Contrato) ControladorContratoJPA
+				.getInstance().findLast();
+		showEntry(current);
+	}
+	
+	/**
+	 * 
+	 */
 	private void showFirst() {
 		current = (Contrato) ControladorContratoJPA
 				.getInstance().findFirst();
@@ -296,7 +414,41 @@ public class PanelContrato extends JPanel {
 		if (c != null) {
 			this.jtfDescripcion.setText(c.getDescripcion());
 			this.spinner.setValue(c.getLimite());
+			this.slider.setValue((int) c.getSaldo());
+			
+			this.jtfTipoContrato.setText(
+					c.getTipocontrato().getId() + " - "
+					+ c.getTipocontrato().getDescripcion());
+			
+			this.jtfUsuario.setText(c.getUsuario().getNombreUsuario());
+			this.jftfFecha.setValue(c.getFechaFirma());
 		}
 	}
-
+	
+	/**
+	 * 
+	 * @param panel
+	 */
+	private void showJDialog(DialogablePanel panel) {
+		// Inicializamos un JDialog.
+		JDialog dialogo = new JDialog();
+		
+		panel.setDialog(dialogo);
+		// El usuario no puede redimensionar el diálogo
+		dialogo.setResizable(true);
+		// título del díalogo
+		dialogo.setTitle("");
+		// Agregamos el panel al JDialog.
+		dialogo.setContentPane((JPanel) panel);
+		// Empaquetar el di�logo hace que todos los componentes ocupen el espacio que deben y el lugar adecuado
+		dialogo.pack();
+		// El usuario no puede hacer clic sobre la ventana padre, si el Di�logo es modal
+		dialogo.setModal(true);
+		// Centro el di�logo en pantalla
+		dialogo.setLocation((Toolkit.getDefaultToolkit().getScreenSize().width)/2 - dialogo.getWidth()/2, 
+				(Toolkit.getDefaultToolkit().getScreenSize().height)/2 - dialogo.getHeight()/2);
+		// Muestro el di�logo en pantalla
+		dialogo.setVisible(true);
+	}
+	
 }
