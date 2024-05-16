@@ -307,7 +307,17 @@ public class PanelContrato extends JPanel {
 		btnTipoContrato.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				showJDialog(new PanelTipoContrato());
+				PanelTipoContrato panelTC = new PanelTipoContrato();
+				// Le pasamos un puntero al PanelContrato actual.
+				panelTC.setPanelContrato(PanelContrato.this);
+				showJDialog(panelTC);
+				// Actualizamos el texto referente a TipoContrato.
+				// El JDialog actualizará el valor de tipoContrato.
+				if (current != null) {
+					jtfTipoContrato.setText(
+							current.getTipocontrato().getId() + " - "
+							+ current.getTipocontrato().getDescripcion());
+				}
 			}
 		});
 		btnTipoContrato.setFont(new Font("Dialog", Font.BOLD, 15));
@@ -449,6 +459,10 @@ public class PanelContrato extends JPanel {
 				(Toolkit.getDefaultToolkit().getScreenSize().height)/2 - dialogo.getHeight()/2);
 		// Muestro el di�logo en pantalla
 		dialogo.setVisible(true);
+	}
+
+	public Contrato getCurrent() {
+		return current;
 	}
 	
 }

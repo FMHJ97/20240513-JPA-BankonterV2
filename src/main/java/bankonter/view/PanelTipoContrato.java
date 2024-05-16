@@ -36,7 +36,16 @@ public class PanelTipoContrato extends JPanel implements DialogablePanel {
 	private JScrollPane scrollPane;
 	private List<Tipocontrato> tiposContrato = 
 			(List<Tipocontrato>) ControladorTipoContratoJPA.getInstance().findAll();
+	
+	// Puntero al PanelContrato para obtener acceso al Contrato actual
+	// (current) y establecerle el tipo de contrato selccionado.
+	
+	private PanelContrato panelContrato;
 
+	public void setPanelContrato(PanelContrato panelContrato) {
+		this.panelContrato = panelContrato;
+	}
+	
 	/**
 	 * Create the panel.
 	 * @param dialogo 
@@ -122,7 +131,8 @@ public class PanelTipoContrato extends JPanel implements DialogablePanel {
 				super.mouseClicked(e);
 				// Se realiza doble clic.
 				if (e.getClickCount() == 2) {
-//					selectedTC = getTipoContratoFromTable();
+					selectedTC = getTipoContratoFromTable();
+					panelContrato.getCurrent().setTipocontrato(selectedTC);
 					dialog.dispose();
 				}
 			}
