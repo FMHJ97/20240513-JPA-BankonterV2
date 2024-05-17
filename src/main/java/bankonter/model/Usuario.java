@@ -96,4 +96,9 @@ public class Usuario extends Entidad implements Serializable {
 		return contrato;
 	}
 
+	@Override
+	public String toString() {
+		return nombreUsuario + " ( " + email + " )";
+	}
+
 }

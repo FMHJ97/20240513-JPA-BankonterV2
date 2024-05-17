@@ -56,6 +56,9 @@ public class PanelContrato extends JPanel {
 	private SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
 	private JDialog dialogo;
 	
+	// Bandera para realizar Persist or Update.
+	private int flag = 0;
+	
 	// Objeto que almacenará el Contrato actual mostrado.
 	// Lo usaremos para acceder al 'id' del Objeto.
 	private Contrato current = null;
@@ -121,10 +124,27 @@ public class PanelContrato extends JPanel {
 		toolBar.add(btnNuevo);
 		
 		btnGuardar = new JButton("Guardar");
+		btnGuardar.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				try {
+					saveEntry();
+				} catch (Exception ex) {
+					JOptionPane.showMessageDialog(null,
+							"No se ha podido realizar ninguna operación");
+				}
+			}
+		});
 		btnGuardar.setIcon(new ImageIcon(PanelContrato.class.getResource("/bankonter/res/guardar.png")));
 		toolBar.add(btnGuardar);
 		
 		btnEliminar = new JButton("Eliminar");
+		btnEliminar.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				deleteEntry();
+			}
+		});
 		btnEliminar.setIcon(new ImageIcon(PanelContrato.class.getResource("/bankonter/res/eliminar.png")));
 		toolBar.add(btnEliminar);
 		
@@ -349,6 +369,18 @@ public class PanelContrato extends JPanel {
 		panel.add(jtfUsuario, gbc_jtfUsuario);
 		
 		btnUsuario = new JButton("Seleccionar Usuario");
+		btnUsuario.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				PanelUsuario panelUser = new PanelUsuario();
+				panelUser.setPanelContrato(PanelContrato.this);
+				showJDialog(panelUser);
+				if (current != null) {
+					jtfUsuario.setText(current.getUsuario()
+							.getNombreUsuario());
+				}
+			}
+		});
 		btnUsuario.setFont(new Font("Dialog", Font.BOLD, 15));
 		GridBagConstraints gbc_btnUsuario = new GridBagConstraints();
 		gbc_btnUsuario.gridwidth = 2;
@@ -363,13 +395,128 @@ public class PanelContrato extends JPanel {
 	/**
 	 * 
 	 */
+	private void saveEntry() {
+		
+		/*
+		 * Validaciones
+		 */
+		
+		if (this.jtfDescripcion.getText().isBlank()) {
+			JOptionPane.showMessageDialog(null,
+					"Introduzca una descripción");
+			return;
+		}
+		
+		if (this.jtfUsuario.getText().isBlank()) {
+			JOptionPane.showMessageDialog(null,
+					"Seleccione un usuario");
+			return;
+		}
+		
+		if (this.jtfTipoContrato.getText().isBlank()) {
+			JOptionPane.showMessageDialog(null,
+					"Seleccione un tipo de contrato");
+			return;
+		}
+		
+		Contrato c = new Contrato();
+		
+		c.setDescripcion(this.jtfDescripcion.getText());
+		c.setLimite(((Number) this.spinner.getValue()).floatValue());
+		c.setSaldo(((Number) this.slider.getValue()).floatValue());
+		c.setUsuario(this.current.getUsuario());
+		c.setTipocontrato(this.current.getTipocontrato());
+		
+		try {
+			if (!this.jftfFecha.getText().isEmpty()) {
+				c.setFechaFirma(sdf.parse(this.jftfFecha.getText()));
+			} else {
+				c.setFechaFirma(null);
+			}
+		} catch (ParseException e) {
+			e.printStackTrace();
+		}
+		
+		
+		if (this.flag == -1) {
+			ControladorContratoJPA.getInstance().insertEntidad(c);
+			JOptionPane.showMessageDialog(null,
+					"Se ha realizado una inserción.");
+		} else {
+			c.setId(this.current.getId());
+			ControladorContratoJPA.getInstance().updateEntidad(c);
+			JOptionPane.showMessageDialog(null,
+					"Se ha realizado una modificación.");
+		}
+		
+	}
+	
+	/**
+	 * 
+	 */
+	private void deleteEntry() {
+		String respuestas[] = new String[] { "Sí", "No" };
+		int opcionElegida = JOptionPane.showOptionDialog(null,
+				"¿Realmente desea eliminar el registro actual?",
+				"Eliminación de Registro", JOptionPane.DEFAULT_OPTION,
+				JOptionPane.WARNING_MESSAGE, null,
+				respuestas, respuestas[1]);
+		
+		// Puntero para seleccionar el posible siguiente o anterior
+		// registro a mostrar.
+		Contrato actual = null;
+
+		if (opcionElegida == 0) {	// Si la opción es 0 (= Si).
+
+				int idActual = current.getId();
+				// Eliminamos el registro.
+				ControladorContratoJPA.getInstance().removeEntidad(
+						ControladorContratoJPA.getInstance().findById(idActual));
+				
+				// A continuación, mostraremos en pantalla el registro
+				// siguiente.
+				actual = (Contrato) ControladorContratoJPA
+						.getInstance().findNext(idActual);
+				
+				// Si hay registro, es decir, el registro borrado es
+				// ocupado por su siguiente registro (id).
+				if (actual != null) {
+					showEntry(actual);
+				} else {
+					// Si hay no registro, miramos si hay registro anterior
+					// al registro borrado.
+					actual = (Contrato) ControladorContratoJPA
+							.getInstance().findPrevious(idActual);
+					if (actual != null) {
+						
+						// Sobreescribimos el puntero de current.
+						this.current = actual;
+						
+						showEntry(current);
+					} else {
+						// Llegados a este punto, no hay registros previos
+						// ni posteriores.
+						newEntry();
+					}
+					
+				}
+			}
+	}
+	
+	/**
+	 * 
+	 */
 	private void newEntry() {
+		
 		this.jtfDescripcion.setText("");
 		this.spinner.setValue(0);
 		this.slider.setValue(0);
 		this.jtfTipoContrato.setText("");
 		this.jtfUsuario.setText("");
 		this.jftfFecha.setText("");
+		
+		// Indicamos que se realizará un persist.
+		this.flag = -1;
 	}
  	
 	/**
@@ -431,8 +578,17 @@ public class PanelContrato extends JPanel {
 					+ c.getTipocontrato().getDescripcion());
 			
 			this.jtfUsuario.setText(c.getUsuario().getNombreUsuario());
-			this.jftfFecha.setValue(c.getFechaFirma());
+			
+			if (c.getFechaFirma() != null) {
+				this.jftfFecha.setValue(c.getFechaFirma());
+			} else {
+				this.jftfFecha.setValue("");
+			}
+			
 		}
+		
+		// Reiniciamos la bandera.
+		this.flag = 0;
 	}
 	
 	/**
